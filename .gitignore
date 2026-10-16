@@ -1,0 +1,17 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Java build output
+backend/target/
+backend/data/*.db
+backend/data/*.db.*
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+
+# Logs and operating-system files
+*.log
+.DS_Store

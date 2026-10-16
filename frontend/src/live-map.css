@@ -1,0 +1,46 @@
+.cityride-live-map {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 218px;
+  margin: 12px -18px 0;
+  overflow: hidden;
+}
+
+.cityride-map {
+  flex: 1;
+  width: 100%;
+  min-height: 206px;
+  background: #edf0e8;
+}
+
+.cityride-map.leaflet-container {
+  height: 100%;
+}
+
+.map-attribution {
+  padding: 3px 6px;
+  background: #fff;
+  color: #68746a;
+  font-size: 8px;
+  text-align: right;
+}
+
+@media (max-width: 1050px) {
+  .cityride-live-map {
+    margin-right: -14px;
+    margin-left: -14px;
+  }
+}
+
+@media (max-width: 760px) {
+  .cityride-live-map {
+    min-height: 202px;
+    margin-right: -18px;
+    margin-left: -18px;
+  }
+
+  .cityride-map {
+    min-height: 190px;
+  }
+}
