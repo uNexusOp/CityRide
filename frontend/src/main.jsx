@@ -120,10 +120,18 @@ function App() {
             setLiveLocations((locations) => ({
               ...locations, [event.rideId]: [event.latitude, event.longitude],
             }))
-          } else {
-            if (event.sosTriggered) setNotice(`An SOS alert was raised for trip ${event.rideId}.`)
-            refresh()
+            return
           }
+          if (event.type === 'DRIVER_ARRIVED') {
+            setNotice(`Driver has arrived for trip ${event.rideId}.`)
+          }
+          if (event.sosTriggered) {
+            setNotice(`An SOS alert was raised for trip ${event.rideId}.`)
+          }
+          if (event.status === 'ARRIVED') {
+            setNotice(`Driver has arrived for trip ${event.rideId}.`)
+          }
+          refresh()
         })
         if (session.user.role === 'DRIVER' && session.user.available !== false && navigator.geolocation) {
           watcher = navigator.geolocation.watchPosition(({ coords }) => {
@@ -454,7 +462,19 @@ function StatCard({ label, value, detail, icon: Icon, accent }) {
 
 function TripStatusBanner({ ride, onAction }) {
   if (ride.status === 'COMPLETED' && ride.paid && ride.rating) return null
-  const statusText = { REQUESTED: 'Looking for your driver', ACCEPTED: 'Your driver is on the way', IN_PROGRESS: "You're on your way", COMPLETED: ride.paid ? 'Rate your ride' : 'Your trip is complete' }
+  if (ride.status === 'ARRIVED') {
+    return <div className="trip-status-banner trip-arrival-banner" role="status" aria-live="polite">
+      <span className="status-pulse"><MapPin size={17} /></span>
+      <span><b>Your driver has arrived</b><small>{ride.driverName ? `${ride.driverName} is waiting at ` : 'Your driver is waiting at '}{ride.pickup}</small></span>
+      <span className="arrival-badge">DRIVER ARRIVED</span>
+    </div>
+  }
+  const statusText = {
+    REQUESTED: 'Looking for your driver',
+    ACCEPTED: 'Your driver is on the way',
+    IN_PROGRESS: "You're on your way",
+    COMPLETED: ride.paid ? 'Rate your ride' : 'Your trip is complete',
+  }
   return <button className="trip-status-banner" onClick={() => ride.status === 'COMPLETED' ? onAction(ride.paid ? 'rating' : 'payment') : undefined}><span className={`status-pulse status-${ride.status.toLowerCase()}`}><CarFront size={16} /></span><span><b>{statusText[ride.status]}</b><small>{ride.pickup} <ArrowRight size={11} /> {ride.destination}</small></span>{ride.status === 'COMPLETED' && <span className="banner-action">{ride.paid ? 'Leave a rating' : `Pay ${money(ride.fare)}`} <ArrowRight size={14} /></span>}{ride.status !== 'COMPLETED' && <span className="banner-live"><i /> UPDATING LIVE</span>}</button>
 }
 
@@ -465,7 +485,9 @@ function RideRow({ ride, onAction, onDownloadReceipt, onEmailReceipt }) {
 }
 
 function DriverRideRow({ ride, onStatus }) {
-  const next = ride.status === 'ACCEPTED' ? ['IN_PROGRESS', 'Start trip'] : ride.status === 'IN_PROGRESS' ? ['COMPLETED', 'Complete trip'] : null
+  const next = ride.status === 'ACCEPTED' || ride.status === 'ARRIVED'
+    ? ['IN_PROGRESS', 'Start trip']
+    : ride.status === 'IN_PROGRESS' ? ['COMPLETED', 'Complete trip'] : null
   return <div className="ride-row"><span className="ride-icon"><CarFront size={17} /></span><div className="ride-route-copy"><b>{ride.pickup} <ArrowRight size={12} /> {ride.destination}</b><span>{dateLabel(ride.createdAt)} · {ride.distanceKm} km</span></div><span className={`status-chip status-chip-${ride.status.toLowerCase()}`}>{ride.status.replace('_', ' ').toLowerCase()}</span><strong className="ride-fare">{money(ride.fare)}</strong>{next && <button className="mini-action" onClick={() => onStatus(ride.id, next[0])}>{next[1]}</button>}</div>
 }
 

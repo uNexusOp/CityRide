@@ -19,7 +19,7 @@ public class RideEventPublisher {
 
     public void rideChanged(Ride ride) {
         Map<String, Object> event = Map.of(
-                "type", "RIDE_UPDATED",
+                "type", ride.getStatus() == com.cityride.model.RideStatus.ARRIVED ? "DRIVER_ARRIVED" : "RIDE_UPDATED",
                 "rideId", ride.getId(),
                 "status", ride.getStatus().name(),
                 "sosTriggered", ride.getSosTriggeredAt() != null);

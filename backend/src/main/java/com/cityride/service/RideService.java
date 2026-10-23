@@ -139,9 +139,30 @@ public class RideService {
         driver.updateLocation(latitude, longitude);
         UserAccount saved = users.save(driver);
         rides.findByDriverIdAndStatusInOrderByCreatedAtDesc(driver.getId(),
-                List.of(RideStatus.ACCEPTED, RideStatus.IN_PROGRESS))
-                .forEach(ride -> events.driverLocation(ride, latitude, longitude));
+                List.of(RideStatus.ACCEPTED, RideStatus.ARRIVED, RideStatus.IN_PROGRESS))
+                .forEach(ride -> {
+                    if (ride.getStatus() == RideStatus.ACCEPTED
+                            && ride.getPickupLatitude() != null && ride.getPickupLongitude() != null
+                            && isNearPickup(latitude, longitude, ride.getPickupLatitude(), ride.getPickupLongitude())) {
+                        ride.setStatus(RideStatus.ARRIVED);
+                        rides.save(ride);
+                        events.rideChanged(ride);
+                    }
+                    events.driverLocation(ride, latitude, longitude);
+                });
         return saved;
+    }
+
+    private boolean isNearPickup(double latitude, double longitude, double pickupLatitude, double pickupLongitude) {
+        final double earthRadiusKm = 6371.0;
+        double latDistance = Math.toRadians(latitude - pickupLatitude);
+        double lonDistance = Math.toRadians(longitude - pickupLongitude);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(pickupLatitude)) * Math.cos(Math.toRadians(latitude))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double distanceKm = earthRadiusKm * c;
+        return distanceKm <= 0.2;
     }
 
     public List<Map<String, Object>> driverRankings() {
@@ -169,7 +190,8 @@ public class RideService {
             throw new ApiException(HttpStatus.FORBIDDEN, "You do not have access to this ride.");
         }
         boolean allowed = switch (next) {
-            case IN_PROGRESS -> driver && ride.getStatus() == RideStatus.ACCEPTED;
+            case ARRIVED -> driver && ride.getStatus() == RideStatus.ACCEPTED;
+            case IN_PROGRESS -> driver && (ride.getStatus() == RideStatus.ACCEPTED || ride.getStatus() == RideStatus.ARRIVED);
             case COMPLETED -> driver && ride.getStatus() == RideStatus.IN_PROGRESS;
             case CANCELLED -> (rider || driver)
                     && (ride.getStatus() == RideStatus.REQUESTED || ride.getStatus() == RideStatus.ACCEPTED);
